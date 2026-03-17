@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulador de Préstamo Hipotecario</title>
+    <style>
+      :root {
+        --primary: #7c4dff;
+        --primary-dark: #673ab7;
+        --bg: #f6f2ff;
+        --text: #2c1f46;
+        --muted: #7f70a2;
+        --card: #ffffff;
+        --danger-bg: #ffe7e7;
+        --danger-text: #a12d2d;
+        --border: #e7ddff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: linear-gradient(180deg, #f3ecff 0%, #faf7ff 45%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 2rem auto;
+        padding: 0 1rem 2rem;
+      }
+
+      .title {
+        text-align: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .title h1 {
+        margin: 0 0 0.35rem;
+        font-size: clamp(1.35rem, 2.5vw, 2rem);
+      }
+
+      .title p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(53, 35, 96, 0.08);
+        padding: 1rem;
+      }
+
+      .card h2 {
+        font-size: 1.1rem;
+        margin: 0 0 1rem;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.9rem;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .field label {
+        font-size: 0.9rem;
+        color: #4e3f6f;
+      }
+
+      .field input {
+        border: 1px solid #d8c9f0;
+        border-radius: 10px;
+        padding: 0.75rem 0.8rem;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      .field input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.18);
+      }
+
+      .actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-top: 0.4rem;
+      }
+
+      button {
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+      }
+
+      .btn-wa {
+        background: #9c79ff;
+        color: #fff;
+      }
+
+      .btn-wa:disabled {
+        background: #b8a8e0;
+        cursor: not-allowed;
+      }
+
+      .result-card {
+        display: none;
+      }
+
+      .result-card.visible {
+        display: block;
+      }
+
+      .results-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .result-item {
+        background: #f8f4ff;
+        border: 1px solid #e7def8;
+        border-radius: 10px;
+        padding: 0.75rem;
+      }
+
+      .result-item .label {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .result-item .value {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-top: 0.2rem;
+      }
+
+      .warning {
+        margin-top: 0.75rem;
+        padding: 0.7rem;
+        background: var(--danger-bg);
+        color: var(--danger-text);
+        border: 1px solid #f8cbcb;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        display: none;
+      }
+
+
+      @media (min-width: 900px) {
+        .layout {
+          grid-template-columns: 420px 1fr;
+          align-items: start;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .results-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <header class="title">
+        <h1>Simulador de Préstamo Hipotecario</h1>
+        <p>Calcula cuota mensual y capacidad de pago con referencia oficial ARS/USD.</p>
+      </header>
+
+      <section class="layout">
+        <article class="card">
+          <h2>Datos de entrada (USD)</h2>
+          <form id="loanForm" class="form-grid">
+            <div class="field">
+              <label for="propertyValue">1. Valor de la propiedad (USD)</label>
+              <input id="propertyValue" type="number" min="1" step="0.01" required />
+            </div>
+            <div class="field">
+              <label for="loanAmount">2. Monto del préstamo (USD)</label>
+              <input id="loanAmount" type="number" min="1" step="0.01" required />
+            </div>
+            <div class="field">
+              <label for="termMonths">3. Plazo en meses</label>
+              <input id="termMonths" type="number" min="1" step="1" required />
+            </div>
+            <div class="field">
+              <label for="annualRate">4. Tasa anual (%)</label>
+              <input id="annualRate" type="number" min="0" step="0.01" required />
+            </div>
+            <div class="field">
+              <label for="monthlyIncome">5. Ingreso mensual del solicitante (USD)</label>
+              <input id="monthlyIncome" type="number" min="1" step="0.01" required />
+            </div>
+            <div class="actions">
+              <button class="btn-primary" type="submit">Simular</button>
+              <button id="waBtn" class="btn-wa" type="button" disabled>Compartir por WhatsApp</button>
+            </div>
+          </form>
+        </article>
+
+        <article id="resultCard" class="card result-card">
+          <h2>Resultados</h2>
+          <div class="results-grid">
+            <div class="result-item">
+              <div class="label">Cuota mensual estimada (USD)</div>
+              <div class="value" id="monthlyPaymentResult">-</div>
+            </div>
+            <div class="result-item">
+              <div class="label">% del ingreso usado</div>
+              <div class="value" id="incomeRatioResult">-</div>
+            </div>
+            <div class="result-item">
+              <div class="label">Ingreso mínimo recomendado (ARS)</div>
+              <div class="value" id="recommendedIncomeResult">-</div>
+            </div>
+            <div class="result-item">
+              <div class="label">Tipo de cambio oficial ARS/USD</div>
+              <div class="value" id="exchangeRateResult">-</div>
+            </div>
+          </div>
+
+          <div id="warningBox" class="warning">
+            ⚠️ La cuota supera el 30% del ingreso mensual del solicitante.
+          </div>
+
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById('loanForm');
+      const waBtn = document.getElementById('waBtn');
+      const resultCard = document.getElementById('resultCard');
+      const warningBox = document.getElementById('warningBox');
+      const monthlyPaymentResult = document.getElementById('monthlyPaymentResult');
+      const incomeRatioResult = document.getElementById('incomeRatioResult');
+      const recommendedIncomeResult = document.getElementById('recommendedIncomeResult');
+      const exchangeRateResult = document.getElementById('exchangeRateResult');
+
+      let latestSimulationText = '';
+
+      function formatCurrencyUSD(value, maximumFractionDigits = 2) {
+        return new Intl.NumberFormat('es-AR', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits
+        }).format(value);
+      }
+
+      function formatCurrencyARS(value, maximumFractionDigits = 0) {
+        return new Intl.NumberFormat('es-AR', {
+          style: 'currency',
+          currency: 'ARS',
+          maximumFractionDigits
+        }).format(value);
+      }
+
+      function formatPercent(value, decimals = 0) {
+        return `${value.toFixed(decimals)}%`;
+      }
+
+      function calculateMonthlyPayment(principal, annualRatePercent, months) {
+        const monthlyRate = annualRatePercent / 100 / 12;
+
+        if (monthlyRate === 0) {
+          return principal / months;
+        }
+
+        return (
+          principal *
+          (monthlyRate * Math.pow(1 + monthlyRate, months)) /
+          (Math.pow(1 + monthlyRate, months) - 1)
+        );
+      }
+
+      async function getOfficialExchangeRate() {
+        const fallbackRate = 1100;
+
+        try {
+          const response = await fetch('https://dolarapi.com/v1/dolares/oficial');
+          if (!response.ok) {
+            throw new Error('No se pudo obtener cotización oficial');
+          }
+
+          const data = await response.json();
+          const rate = Number(data.venta || data.promedio || 0);
+
+          if (!rate || Number.isNaN(rate)) {
+            throw new Error('Cotización oficial inválida');
+          }
+
+          return rate;
+        } catch (error) {
+          return fallbackRate;
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const propertyValue = Number(document.getElementById('propertyValue').value);
+        const loanAmount = Number(document.getElementById('loanAmount').value);
+        const termMonths = Number(document.getElementById('termMonths').value);
+        const annualRate = Number(document.getElementById('annualRate').value);
+        const monthlyIncome = Number(document.getElementById('monthlyIncome').value);
+
+        if (
+          !propertyValue ||
+          !loanAmount ||
+          !termMonths ||
+          annualRate < 0 ||
+          !monthlyIncome
+        ) {
+          return;
+        }
+
+        const officialRate = await getOfficialExchangeRate();
+        const monthlyPayment = calculateMonthlyPayment(loanAmount, annualRate, termMonths);
+        const incomeRatio = (monthlyPayment / monthlyIncome) * 100;
+        const recommendedIncomeUSD = monthlyPayment / 0.3;
+        const recommendedIncomeARS = recommendedIncomeUSD * officialRate;
+
+        monthlyPaymentResult.textContent = formatCurrencyUSD(monthlyPayment, 0);
+        incomeRatioResult.textContent = formatPercent(incomeRatio, 0);
+        recommendedIncomeResult.textContent = formatCurrencyARS(recommendedIncomeARS, 0);
+        exchangeRateResult.textContent = formatCurrencyARS(officialRate, 2);
+
+        warningBox.style.display = incomeRatio > 30 ? 'block' : 'none';
+        resultCard.classList.add('visible');
+
+        latestSimulationText = [
+          '📊 Simulación de préstamo hipotecario',
+          `Valor de la propiedad (USD): ${formatCurrencyUSD(propertyValue)}`,
+          `Monto del préstamo (USD): ${formatCurrencyUSD(loanAmount)}`,
+          `Plazo: ${termMonths} meses`,
+          `Tasa anual: ${formatPercent(annualRate, 2)}`,
+          `Cuota mensual estimada (USD): ${formatCurrencyUSD(monthlyPayment, 0)}`,
+          `% del ingreso usado: ${formatPercent(incomeRatio, 0)}`,
+          `Tipo de cambio oficial ARS/USD: ${formatCurrencyARS(officialRate, 2)}`,
+          `Ingreso mínimo recomendado (ARS): ${formatCurrencyARS(recommendedIncomeARS, 0)}`
+        ].join('\n');
+
+        waBtn.disabled = false;
+      });
+
+      waBtn.addEventListener('click', () => {
+        if (!latestSimulationText) {
+          return;
+        }
+
+        const encoded = encodeURIComponent(latestSimulationText);
+        window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank', 'noopener');
+      });
+    </script>
+  </body>
+</html>
